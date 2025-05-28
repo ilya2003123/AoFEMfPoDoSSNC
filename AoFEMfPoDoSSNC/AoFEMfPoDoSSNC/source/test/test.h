@@ -48,3 +48,34 @@ void test()
 
 	std::cout << "All test done" << std::endl;
 }
+
+void exmain()
+{
+	std::string str2 = "dx(cos(x))";
+	Parser p2(str2.c_str());
+
+	inputx = 10000;
+
+	auto q2 = p2.parse();
+	auto result2 = eval(q2);
+	std::cout << result2 << std::endl;
+
+	//std::cout << dcos(1);
+
+	try
+	{
+		std::string str;
+		std::cout << "Function: ";
+		std::getline(std::cin, str);
+		std::cout << std::endl;
+		std::cout << "X: ";
+		std::cin >> inputx;
+		std::cout << std::endl;
+
+		Parser p(str.c_str());
+		auto q = p.parse();
+		auto result = eval(q);
+		std::cout << result << std::endl;
+	}
+	catch (std::runtime_error& Error) { std::cout << Error.what() << std::endl; }
+}

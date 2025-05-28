@@ -9,42 +9,89 @@
 #include "Derivative/derivative.h"
 #include "Parser/Parser.h"
 #include "test/test.h"
-//#include <iomanip> - для вывода, можно отрегулировать сколько знаков после запятой выводится!
+#include "basis/basis.h"
+#include "coefficient/coefficient.h"
+//#include <ionanip> - для вывода, можно отрегулировать сколько знаков после запятой выводится!
 
-using namespace utils;  // Просто потому что надо! :D
+using namespace utils;
 
 
 int main()
 {
-	test();
+	//test();
+	setlocale(LC_ALL, "rus");
 
-	std::string str2 = "dx(cos(x))";
-	Parser p2(str2.c_str());
+	std::cout << "Введите колличество разбиений: ";
+	int n;
+	std::cin >> n;
 
-	inputx = 10000;
+	std::cout << "Введите границу m: ";
+	double m;
+	std::cin >> m;
 
-	auto q2 = p2.parse();
-	auto result2 = eval(q2);
-	std::cout << result2 << std::endl;
-
-	//std::cout << dcos(1);
-
-	try
+	Cap** phi = new Cap * [n];
+	for (int i = 0; i < n; i++)
 	{
-		std::string str;
-		std::cout << "Function: ";
-		std::getline(std::cin, str);
-		std::cout << std::endl;
-		std::cout << "X: ";
-		std::cin >> inputx;
-		std::cout << std::endl;
-
-		Parser p(str.c_str());
-		auto q = p.parse();
-		auto result = eval(q);
-		std::cout << result << std::endl;
+		phi[i] = new Cap[n + 1];
 	}
-	catch (std::runtime_error& Error) { std::cout << Error.what() << std::endl; }
+
+	equationStraightLine(phi, n);
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < n + 1; j++)
+		{
+			std::cout << phi[i][j];
+		}
+		std::endl(std::cout);
+	}
+
+	// сейчас работает для конретного уравнения кусочной
+   // функции, сделай так, чтобы она работала по полной, потом добавь возможность интервала, после чего сделай ввод функций p и q
+   // после этого посмотри в гпт, и сделай метод прогонки, потом реализуй всё тоже самое для d_i, и у тебя получится нужное уравнение.
+
+   // или просто глянь в гпт, он там чот умное написал. :D
+
+
+
+	std::vector<double> coeffC = thomasAlgorithm(integrateProduct(phi, 1, 1, n), rightSystemCoefficientC(n, 1, phi));
+	std::vector<double> coeffD = thomasAlgorithm(integrateProduct(phi, 1, 1, n), rightSystemCoefficientD(n));
+
+	double c = 0.0;
+
+	if (coeffC[n - 1] >= m)
+	{
+		c = (m - coeffC[n - 1]) / coeffD[n - 1];
+	}
+	else if (coeffC[n - 1] <= -m)
+	{
+		c = (-m - coeffC[n - 1]) / coeffD[n - 1];
+	}
+	else
+	{
+		c = 0.0;
+	}
+
+	std::vector<std::vector<std::vector<double>>> u_h;
+	u_h.resize(n, std::vector<std::vector<double>>(n, std::vector<double>(2, 0.0)));
+
+	for (int i = 0; i < n; i++)
+	{
+		for (int j = 0; j < n; j++)
+		{
+			u_h[i][j][0] += (coeffC[i] + c * coeffD[i]) * phi[i][j].m_equation.m_coeff[0];
+			u_h[i][j][1] += (coeffC[i] + c * coeffD[i]) * phi[i][j].m_equation.m_coeff[1];
+		}
+	}
+
+	for (int i = 0; i < n; i++)
+	{
+		std::cout << "System №" << i + 1 << ":\n";
+		for (int j = 0; j < n; j++)
+		{
+			std::cout << "Equation №" << j + 1 << ": " << u_h[i][j][1] << "+" << u_h[i][j][0] << "\n";
+		}
+	}
 
 	return 0;
 }
