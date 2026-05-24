@@ -16,3 +16,6 @@
 *.dll
 *.lib
 *.pdb
+*.exe
+*.txt
+*.png

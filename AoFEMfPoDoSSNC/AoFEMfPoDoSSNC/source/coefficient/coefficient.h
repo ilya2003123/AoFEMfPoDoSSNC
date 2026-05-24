@@ -1,116 +1,187 @@
-﻿#pragma once
+#pragma once
 
 #include "../basis/basis.h"
-#include "cmath"
+#include "../Functions/functions.h"
+#include <cmath>
+#include <stdexcept>
+#include <vector>
 
-double productPiecewiseDerivativeFunction(Cap* phi, Cap* ksi, int m)
+using Matrix = std::vector<std::vector<double>>;
+
+inline double capValue(const Cap& cap, double x)
+{
+	return cap.m_equation.m_coeff[1] * x + cap.m_equation.m_coeff[0];
+}
+
+inline double capDerivative(const Cap& cap)
+{
+	return cap.m_equation.m_coeff[1];
+}
+
+template <typename Integrand>
+double integrateGauss5(double left, double right, Integrand integrand)
+{
+	static const double nodes[5] = {
+		-0.9061798459386640,
+		-0.5384693101056831,
+		 0.0,
+		 0.5384693101056831,
+		 0.9061798459386640
+	};
+	static const double weights[5] = {
+		0.2369268850561891,
+		0.4786286704993665,
+		0.5688888888888889,
+		0.4786286704993665,
+		0.2369268850561891
+	};
+
+	const double center = 0.5 * (left + right);
+	const double halfLength = 0.5 * (right - left);
+	double sum = 0.0;
+
+	for (int i = 0; i < 5; ++i)
+	{
+		const double x = center + halfLength * nodes[i];
+		sum += weights[i] * integrand(x);
+	}
+
+	return halfLength * sum;
+}
+
+inline double productPiecewiseDerivativeFunction(Cap* phi, Cap* ksi, int m)
 {
 	double sum = 0.0;
-	for (int i = 0; i < m; i++)
+	for (int interval = 0; interval < m; ++interval)
 	{
-		sum += phi[i].m_equation.m_coeff[1] * ksi[i].m_equation.m_coeff[1];
+		const double left = phi[interval].m_leftBorder.x;
+		const double right = phi[interval].m_rightBorder.x;
+		sum += capDerivative(phi[interval]) * capDerivative(ksi[interval]) * (right - left);
 	}
 	return sum;
 }
 
-std::vector<std::vector<double>> integrateProduct(Cap** phi, double p, double q, int m)
+inline Matrix integrateProduct(Cap** phi, functions::Abstract& p, functions::Abstract& q, int m)
 {
-	// Интеграл от p*φ₁'*φ₂' + q*φ₁*φ₂ на [x1, x2]
-	std::vector<std::vector<double>> integral;
-	integral.resize(m, std::vector<double>(m, 0.0));
+	Matrix integral(m, std::vector<double>(m, 0.0));
 
-
-	for (int i = 0; i < m; i++)
+	for (int i = 0; i < m; ++i)
 	{
-		for (int j = 0; j < m; j++)
+		for (int j = 0; j < m; ++j)
 		{
-			double k1 = phi[i]->m_equation.m_coeff[1];
-			double k2 = phi[j]->m_equation.m_coeff[1];
-
-			double delta = (phi[i][j].m_rightBorder.x - phi[i][j].m_leftBorder.x);
-
-			// Жёсткостная часть: ∫p*φ₁'*φ₂'dx = p*k1*k2*(x2 - x1)
-			integral[i][j] += p * productPiecewiseDerivativeFunction(phi[i], phi[j], m) * delta;
-		}
-	}
-
-	for (int i = 0; i < m; i++)
-	{
-		for (int j = 0; j < m; j++)
-		{
-			// Массовая часть: ∫q*φ₁*φ₂dx, φ₁(x) = a1*x + b1, φ₂(x) = a2*x + b2
-			for (int k = 0; k < m + 1; k++)
+			for (int interval = 0; interval < m; ++interval)
 			{
-				double a1 = phi[i][k].m_equation.m_coeff[1];
-				double b1 = phi[i][k].m_equation.m_coeff[0];
-				double a2 = phi[j][k].m_equation.m_coeff[1];
-				double b2 = phi[j][k].m_equation.m_coeff[0];
+				const Cap& phiI = phi[i][interval];
+				const Cap& phiJ = phi[j][interval];
+				const double left = phiI.m_leftBorder.x;
+				const double right = phiI.m_rightBorder.x;
+				const double dPhiI = capDerivative(phiI);
+				const double dPhiJ = capDerivative(phiJ);
 
-				double a11 = a1 * a2 / ((m + 1) * (m + 1) * (m + 1));
-				double a12 = (a1 * b2 + a2 * b1) / ((m + 1) * (m + 1));
-				double a13 = b1 * b2 * (phi[i][j].m_rightBorder.x - phi[i][j].m_leftBorder.x);
-
-				integral[i][j] += q * (a11 / 3 + a12 / 2 + a13);
+				integral[i][j] += integrateGauss5(left, right, [&](double x)
+				{
+					return p(x) * dPhiI * dPhiJ + q(x) * capValue(phiI, x) * capValue(phiJ, x);
+				});
 			}
 		}
 	}
+
 	return integral;
 }
 
-std::vector<double> rightSystemCoefficientC(int m, double f, Cap** phi)
+inline Matrix integrateProduct(Cap** phi, double p, double q, int m)
 {
-	std::vector<double> sum;
-	sum.resize(m, 0.0);
-
-	for (int i = 0; i < m; i++)
-	{
-		for (int j = 0; j < m + 1; j++)
-		{
-			double a = phi[i][j].m_equation.m_coeff[1];
-			double b = phi[i][j].m_equation.m_coeff[0];
-
-			double delta = phi[i][j].m_rightBorder.x - phi[i][j].m_leftBorder.x;
-
-			sum[i] += (a * delta * delta) / 2 + b * delta;
-		}
-	}
-
-	return sum;
+	functions::Const pConst(p);
+	functions::Const qConst(q);
+	return integrateProduct(phi, pConst, qConst, m);
 }
 
-std::vector<double> thomasAlgorithm(const std::vector<std::vector<double>>& A,
-	const std::vector<double>& d) {
-	int n = d.size();
-	std::vector<double> c_prime(n, 0.0);
-	std::vector<double> d_prime(n, 0.0);
-	std::vector<double> x(n, 0.0);
+inline std::vector<double> rightSystemCoefficientC(int m, functions::Abstract& f, Cap** phi)
+{
+	std::vector<double> rightVector(m, 0.0);
 
-	// Прямой ход
-	c_prime[0] = A[0][1] / A[0][0];
-	d_prime[0] = d[0] / A[0][0];
+	for (int i = 0; i < m; ++i)
+	{
+		for (int interval = 0; interval < m; ++interval)
+		{
+			const Cap& phiI = phi[i][interval];
+			const double left = phiI.m_leftBorder.x;
+			const double right = phiI.m_rightBorder.x;
 
-	for (int i = 1; i < n; ++i) {
-		double denominator = A[i][i] - A[i][i - 1] * c_prime[i - 1];
-		if (i < n - 1) {
-			c_prime[i] = A[i][i + 1] / denominator;
+			rightVector[i] += integrateGauss5(left, right, [&](double x)
+			{
+				return f(x) * capValue(phiI, x);
+			});
 		}
-		d_prime[i] = (d[i] - A[i][i - 1] * d_prime[i - 1]) / denominator;
 	}
 
-	// Обратный ход
-	x[n - 1] = d_prime[n - 1];
-	for (int i = n - 2; i >= 0; --i) {
-		x[i] = d_prime[i] - c_prime[i] * x[i + 1];
+	return rightVector;
+}
+
+inline std::vector<double> rightSystemCoefficientC(int m, double f, Cap** phi)
+{
+	functions::Const fConst(f);
+	return rightSystemCoefficientC(m, fConst, phi);
+}
+
+inline std::vector<double> rightSystemCoefficientD(int m)
+{
+	std::vector<double> rightVector(m, 0.0);
+	if (m > 0)
+	{
+		rightVector[m - 1] = 1.0;
+	}
+
+	return rightVector;
+}
+
+inline std::vector<double> thomasAlgorithm(const Matrix& A, const std::vector<double>& d)
+{
+	const int n = static_cast<int>(d.size());
+	if (n == 0)
+	{
+		return {};
+	}
+	if (n == 1)
+	{
+		if (std::abs(A[0][0]) < 1e-14)
+		{
+			throw std::runtime_error("Zero diagonal in 1x1 system");
+		}
+		return { d[0] / A[0][0] };
+	}
+
+	std::vector<double> cPrime(n, 0.0);
+	std::vector<double> dPrime(n, 0.0);
+	std::vector<double> x(n, 0.0);
+
+	if (std::abs(A[0][0]) < 1e-14)
+	{
+		throw std::runtime_error("Zero first diagonal in Thomas algorithm");
+	}
+
+	cPrime[0] = A[0][1] / A[0][0];
+	dPrime[0] = d[0] / A[0][0];
+
+	for (int i = 1; i < n; ++i)
+	{
+		const double denominator = A[i][i] - A[i][i - 1] * cPrime[i - 1];
+		if (std::abs(denominator) < 1e-14)
+		{
+			throw std::runtime_error("Zero denominator in Thomas algorithm");
+		}
+		if (i < n - 1)
+		{
+			cPrime[i] = A[i][i + 1] / denominator;
+		}
+		dPrime[i] = (d[i] - A[i][i - 1] * dPrime[i - 1]) / denominator;
+	}
+
+	x[n - 1] = dPrime[n - 1];
+	for (int i = n - 2; i >= 0; --i)
+	{
+		x[i] = dPrime[i] - cPrime[i] * x[i + 1];
 	}
 
 	return x;
-}
-
-std::vector<double> rightSystemCoefficientD(int m)
-{
-	std::vector<double> rightVector;
-	rightVector.resize(m - 1, 0.0);
-	rightVector.push_back(1.0);
-
-	return rightVector;
 }

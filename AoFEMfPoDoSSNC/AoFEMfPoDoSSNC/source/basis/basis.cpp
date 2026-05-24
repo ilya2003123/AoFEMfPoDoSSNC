@@ -22,43 +22,32 @@ double freeMember(Point p1, Point p2)
 	return b;
 }
 
-void equationStraightLine(Cap** phi, int m)
+void equationStraightLine(Cap** phi, int m, double length)
 {
+	const double h = length / m;
+
 	for (int i = 0; i < m; i++)
 	{
-		for (int j = 0; j < m + 1; j++)
+		const int peakNode = i + 1;
+		for (int j = 0; j < m; j++)
 		{
-				if (i == j)
-				{
-					phi[i][j].m_leftBorder = { j * (1.0 / (m + 1)), 0 };
-					phi[i][j].m_rightBorder = { (j + 1) * (1.0 / (m + 1)), 1 };
-				}
-				else if (i == j - 1)
-				{
-					phi[i][j].m_leftBorder = { j * (1.0 / (m + 1)), 1 };
-					phi[i][j].m_rightBorder = { (j + 1) * (1.0 / (m + 1)), 0 };
-				}
-				else
-				{
-					phi[i][j].m_leftBorder = { j * (1.0 / (m + 1)), 0 };
-					phi[i][j].m_rightBorder = { (j + 1) * (1.0 / (m + 1)), 0 };
-				}
+			const double xLeft = j * h;
+			const double xRight = (j + 1) * h;
+			const double yLeft = (j == peakNode) ? 1.0 : 0.0;
+			const double yRight = ((j + 1) == peakNode) ? 1.0 : 0.0;
+
+			phi[i][j].m_leftBorder = { xLeft, yLeft };
+			phi[i][j].m_rightBorder = { xRight, yRight };
 		}
 	}
 
 	for (int i = 0; i < m; i++)
 	{
-		for (int j = 0; j < m + 1; j++)
+		for (int j = 0; j < m; j++)
 		{
-			if (j != m)
-			{
-				phi[i][j].m_equation =
-					Equation(freeMember(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder),
-						linealCoeff(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder));
-				/*phi[i][j].m_polynom =
-					Polynomial(freeMember(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder),
-						linealCoeff(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder));*/
-			}
+			phi[i][j].m_equation =
+				Equation(freeMember(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder),
+					linealCoeff(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder));
 		}
 	}
 }
