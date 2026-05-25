@@ -335,15 +335,15 @@ Expression Parser::parseUnary()
 	{
 		return makeUnary("-", parseUnary());
 	}
-	return parsePrimary();
+	return parsePower();
 }
 
 Expression Parser::parsePower()
 {
-	Expression left = parseUnary();
+	Expression left = parsePrimary();
 	if (consume('^'))
 	{
-		Expression right = parsePower();
+		Expression right = parseUnary();
 		return makeBinary("^", left, right);
 	}
 	return left;
@@ -351,16 +351,16 @@ Expression Parser::parsePower()
 
 Expression Parser::parseMulDiv()
 {
-	Expression left = parsePower();
+	Expression left = parseUnary();
 	for (;;)
 	{
 		if (consume('*'))
 		{
-			left = makeBinary("*", left, parsePower());
+			left = makeBinary("*", left, parseUnary());
 		}
 		else if (consume('/'))
 		{
-			left = makeBinary("/", left, parsePower());
+			left = makeBinary("/", left, parseUnary());
 		}
 		else
 		{

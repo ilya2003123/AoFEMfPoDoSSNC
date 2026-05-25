@@ -29,7 +29,7 @@ void writePlotFile(const std::string& outputPath, const ProblemDefinition& probl
 	out << "m " << problem.limiter << "\n";
 	out << "p " << problem.p << "\n";
 	out << "q " << problem.q << "\n";
-	if (!problem.generatedRightSide)
+	if (!problem.f.empty())
 	{
 		out << "f " << problem.f << "\n";
 	}
