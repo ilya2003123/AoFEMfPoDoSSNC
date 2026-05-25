@@ -6,10 +6,10 @@
 #include "../Utils/Utils.h"
 
 template <typename F>
-class Derivative<functions::ACotangent<F>> : public functions::Abstract
+class Derivative<functions::ArcCot<F>> : public functions::Abstract
 {
 public:
-	Derivative(const functions::ACotangent<F>& f)
+	Derivative(const functions::ArcCot<F>& f)
 		: m_f(f.m_f), m_df(f.m_f)
 	{
 	}

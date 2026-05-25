@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::ASinus<F> ASin(F& f)
+	functions::ArcSin<F> ASin(F& f)
 	{
-		return functions::ASinus<F>(f);
+		return functions::ArcSin<F>(f);
 	}
 
 	double ASin(double x)

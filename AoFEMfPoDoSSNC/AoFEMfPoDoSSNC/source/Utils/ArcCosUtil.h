@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::ACosinus<F> ACos(F& f)
+	functions::ArcCos<F> ACos(F& f)
 	{
-		return functions::ACosinus<F>(f);
+		return functions::ArcCos<F>(f);
 	}
 
 	double ACos(double x)

@@ -1,19 +1,20 @@
 #pragma once
 
-// Этот файлик нам нужен, чтобы не подключать постоянно везде все эти файлики
+// Common include for function expression nodes.
 
 #include "Const.h"
 #include "Simple.h"
-#include "ACos.h"
-#include "ACotangent.h"
-#include "ASin.h"
-#include "ATangent.h"
+#include "ArcCos.h"
+#include "ArcCot.h"
+#include "ArcSin.h"
+#include "ArcTan.h"
 #include "Cos.h"
-#include "Cotangent.h"
+#include "Cot.h"
 #include "Exponent.h"
 #include "Logarithm.h"
 #include "Power.h"
 #include "Sin.h"
-#include "Tangent.h"
+#include "Tan.h"
 #include "Abstract.h"
 #include "Exponent_Power.h"
+#include "Piecewise.h"

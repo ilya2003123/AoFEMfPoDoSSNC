@@ -1,28 +1,19 @@
 #include "basis.h"
-#include <iostream>
 
-void line(Point p1, Point p2)
-{
-	double m = (p2.y - p1.y) / (p2.x - p1.x);
-	double b = p1.y - m * p1.x;
-	std::cout << "Equation (" << p1.x << ", " << p1.y << ") and (" << p2.x << ", " << p2.y <<
-		") is y =" << m << "x + " << b << std::endl;
-}
-
-double linealCoeff(Point p1, Point p2)
+double linearCoefficient(Point p1, Point p2)
 {
 	double m = static_cast<double>((p2.y - p1.y) / (p2.x - p1.x));
 	return m;
 }
 
-double freeMember(Point p1, Point p2)
+double constantTerm(Point p1, Point p2)
 {
 	double k = static_cast<double>((p2.y - p1.y) / (p2.x - p1.x));
 	double b = static_cast<double>(p1.y - k * p1.x);
 	return b;
 }
 
-void equationStraightLine(Cap** phi, int m, double length)
+void buildLinearBasis(Basis& phi, int m, double length)
 {
 	const double h = length / m;
 
@@ -46,8 +37,8 @@ void equationStraightLine(Cap** phi, int m, double length)
 		for (int j = 0; j < m; j++)
 		{
 			phi[i][j].m_equation =
-				Equation(freeMember(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder),
-					linealCoeff(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder));
+				Equation(constantTerm(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder),
+					linearCoefficient(phi[i][j].m_leftBorder, phi[i][j].m_rightBorder));
 		}
 	}
 }

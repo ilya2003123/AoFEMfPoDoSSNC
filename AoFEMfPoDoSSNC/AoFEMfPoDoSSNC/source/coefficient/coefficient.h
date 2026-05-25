@@ -2,20 +2,19 @@
 
 #include "../basis/basis.h"
 #include "../Functions/functions.h"
+#include "../FEM/Types.h"
 #include <cmath>
 #include <stdexcept>
 #include <vector>
 
-using Matrix = std::vector<std::vector<double>>;
-
 inline double capValue(const Cap& cap, double x)
 {
-	return cap.m_equation.m_coeff[1] * x + cap.m_equation.m_coeff[0];
+	return cap.m_equation.slope() * x + cap.m_equation.constant();
 }
 
 inline double capDerivative(const Cap& cap)
 {
-	return cap.m_equation.m_coeff[1];
+	return cap.m_equation.slope();
 }
 
 template <typename Integrand>
@@ -49,7 +48,7 @@ double integrateGauss5(double left, double right, Integrand integrand)
 	return halfLength * sum;
 }
 
-inline double productPiecewiseDerivativeFunction(Cap* phi, Cap* ksi, int m)
+inline double productPiecewiseDerivativeFunction(const std::vector<Cap>& phi, const std::vector<Cap>& ksi, int m)
 {
 	double sum = 0.0;
 	for (int interval = 0; interval < m; ++interval)
@@ -61,7 +60,7 @@ inline double productPiecewiseDerivativeFunction(Cap* phi, Cap* ksi, int m)
 	return sum;
 }
 
-inline Matrix integrateProduct(Cap** phi, functions::Abstract& p, functions::Abstract& q, int m)
+inline Matrix assembleSystemMatrix(const Basis& phi, functions::Abstract& p, functions::Abstract& q, int m)
 {
 	Matrix integral(m, std::vector<double>(m, 0.0));
 
@@ -89,14 +88,14 @@ inline Matrix integrateProduct(Cap** phi, functions::Abstract& p, functions::Abs
 	return integral;
 }
 
-inline Matrix integrateProduct(Cap** phi, double p, double q, int m)
+inline Matrix assembleSystemMatrix(const Basis& phi, double p, double q, int m)
 {
 	functions::Const pConst(p);
 	functions::Const qConst(q);
-	return integrateProduct(phi, pConst, qConst, m);
+	return assembleSystemMatrix(phi, pConst, qConst, m);
 }
 
-inline std::vector<double> rightSystemCoefficientC(int m, functions::Abstract& f, Cap** phi)
+inline std::vector<double> assembleLoadVector(int m, functions::Abstract& f, const Basis& phi)
 {
 	std::vector<double> rightVector(m, 0.0);
 
@@ -118,13 +117,13 @@ inline std::vector<double> rightSystemCoefficientC(int m, functions::Abstract& f
 	return rightVector;
 }
 
-inline std::vector<double> rightSystemCoefficientC(int m, double f, Cap** phi)
+inline std::vector<double> assembleLoadVector(int m, double f, const Basis& phi)
 {
 	functions::Const fConst(f);
-	return rightSystemCoefficientC(m, fConst, phi);
+	return assembleLoadVector(m, fConst, phi);
 }
 
-inline std::vector<double> rightSystemCoefficientD(int m)
+inline std::vector<double> assembleBoundaryVector(int m)
 {
 	std::vector<double> rightVector(m, 0.0);
 	if (m > 0)
@@ -135,7 +134,7 @@ inline std::vector<double> rightSystemCoefficientD(int m)
 	return rightVector;
 }
 
-inline std::vector<double> thomasAlgorithm(const Matrix& A, const std::vector<double>& d)
+inline std::vector<double> solveTridiagonalSystem(const Matrix& A, const std::vector<double>& d)
 {
 	const int n = static_cast<int>(d.size());
 	if (n == 0)
@@ -168,7 +167,7 @@ inline std::vector<double> thomasAlgorithm(const Matrix& A, const std::vector<do
 		const double denominator = A[i][i] - A[i][i - 1] * cPrime[i - 1];
 		if (std::abs(denominator) < 1e-14)
 		{
-			throw std::runtime_error("Zero denominator in Thomas algorithm");
+			throw std::runtime_error("Zero denominator in tridiagonal solver");
 		}
 		if (i < n - 1)
 		{

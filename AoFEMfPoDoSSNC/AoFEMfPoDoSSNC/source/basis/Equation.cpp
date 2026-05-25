@@ -1,143 +1,157 @@
 #include "Equation.h"
 
+#include <algorithm>
+#include <cmath>
+#include <iomanip>
+#include <sstream>
+#include <stdexcept>
+
+namespace
+{
+	std::string formatCoefficient(double value)
+	{
+		std::ostringstream out;
+		out << std::setprecision(10) << value;
+		return out.str();
+	}
+
+	int actualDegree(const Equation::Coefficients& coefficients)
+	{
+		for (int degree = Equation::maxDegree; degree > 0; --degree)
+		{
+			if (std::abs(coefficients[degree]) > 1e-14)
+			{
+				return degree;
+			}
+		}
+		return 0;
+	}
+}
 
 Equation::Equation()
 {
-	//m_coeff = new double[m_index + 1];
 }
 
-Equation::Equation(double k, double b)
+Equation::Equation(double constantTerm, double linearCoefficient)
 {
-	//m_coeff = new double[m_index + 1];
-	m_coeff[0] = k;
-	m_coeff[1] = b;
-	m_coeff[2] = 0;
+	m_coeff[0] = constantTerm;
+	m_coeff[1] = linearCoefficient;
+	m_degree = actualDegree(m_coeff);
 }
 
-Equation::Equation(int index)
+Equation::Equation(int degree)
+	: m_degree(degree)
 {
-	m_index = index;
-	//m_coeff = new double[m_index + 1];
-}
-
-Equation::Equation(const Equation& other)
-{
-	m_index = other.m_index;
-	//m_coeff = new double[other.m_index + 1];
-	for (int i = 0; i < other.m_index + 1; i++)
-		m_coeff[i] = other.m_coeff[i];
-}
-
-Equation::~Equation()
-{
-	//delete[] m_coeff;
-}
-
-
-
-Equation& Equation::operator=(const Equation& other)
-{
-	m_index = other.m_index;
-	//m_coeff = new double[other.m_index + 1];
-	for (int i = 0; i < other.m_index + 1; i++)
-		m_coeff[i] = other.m_coeff[i];
-
-	return *this;
+	checkDegree(degree);
 }
 
 std::string Equation::outputEquation() const
 {
-	std::string res;
+	std::string result;
 
-	for (int i = 0; i < m_index + 1; i++)
+	for (int degree = 0; degree <= m_degree; ++degree)
 	{
-		if (m_coeff[i] != 0)
+		const double value = m_coeff[degree];
+		if (std::abs(value) <= 1e-14)
 		{
-			if (i >= 2)
-			{
-				res += std::to_string(static_cast<int>(round(m_coeff[i])));
-				res += "x^" + std::to_string(i);
-			}
-			else if (i == 1)
-			{
-				if (m_coeff[i] > 0 && i != m_index)
-				{
-					res += "+";
-				}
-				res += std::to_string(static_cast<int>(round(m_coeff[i])));
-				res += "x";
-			}
-			else if (i == 0)
-			{
-				if (m_coeff[i] > 0)
-				{
-					res += "+";
-				}
-				res += std::to_string(static_cast<int>(round(m_coeff[i])));
-			}
+			continue;
+		}
+
+		if (!result.empty() && value > 0.0)
+		{
+			result += "+";
+		}
+
+		result += formatCoefficient(value);
+		if (degree == 1)
+		{
+			result += "x";
+		}
+		else if (degree >= 2)
+		{
+			result += "x^" + std::to_string(degree);
 		}
 	}
 
-	// Обработка случая, когда строка пуста
-	if (res.empty())
+	if (result.empty())
 	{
-		res = "0";
+		result = "0";
 	}
 
-	return res;
+	return result;
 }
 
-
-Equation operator+(Equation& eq1, Equation& eq2)
+int Equation::degree() const
 {
-	Equation eq3;
-	for (int i = 0; i <= eq3.m_index; i++)
-	{
-		eq3.m_coeff[i] = 0;
-	}
-
-	for (int i = 0; i <= eq3.m_index; i++)
-	{
-		eq3.m_coeff[i] += eq1.m_coeff[i];
-		eq3.m_coeff[i] += eq2.m_coeff[i];
-	}
-
-	return eq3;
+	return m_degree;
 }
 
-Equation operator-(Equation& eq1, Equation& eq2)
+double Equation::coefficient(int degree) const
 {
-	Equation eq3;
-	for (int i = 0; i <= eq3.m_index; i++)
-	{
-		eq3.m_coeff[i] = 0;
-	}
-
-	for (int i = 0; i <= eq3.m_index; i++)
-	{
-		eq3.m_coeff[i] += eq1.m_coeff[i];
-		eq3.m_coeff[i] -= eq2.m_coeff[i];
-	}
-
-	return eq3;
+	checkDegree(degree);
+	return m_coeff[degree];
 }
 
-Equation operator*(Equation& eq1, Equation& eq2)
+void Equation::setCoefficient(int degree, double value)
 {
-	const int p = eq1.m_index + eq2.m_index;
-	Equation eq3(p);
-	for (int i = 0; i <= p; i++)
-	{
-		eq3.m_coeff[i] = 0;
-	}
+	checkDegree(degree);
+	m_coeff[degree] = value;
+	m_degree = actualDegree(m_coeff);
+}
 
-	for (int i = 0; i <= eq1.m_index; i++)
+double Equation::constant() const
+{
+	return coefficient(0);
+}
+
+double Equation::slope() const
+{
+	return coefficient(1);
+}
+
+void Equation::checkDegree(int degree)
+{
+	if (degree < 0 || degree > maxDegree)
 	{
-		for (int j = 0; j <= eq2.m_index; j++)
+		throw std::out_of_range("Equation degree is outside the supported range");
+	}
+}
+
+Equation operator+(const Equation& eq1, const Equation& eq2)
+{
+	Equation result(std::max(eq1.degree(), eq2.degree()));
+	for (int degree = 0; degree <= Equation::maxDegree; ++degree)
+	{
+		result.setCoefficient(degree, eq1.coefficient(degree) + eq2.coefficient(degree));
+	}
+	return result;
+}
+
+Equation operator-(const Equation& eq1, const Equation& eq2)
+{
+	Equation result(std::max(eq1.degree(), eq2.degree()));
+	for (int degree = 0; degree <= Equation::maxDegree; ++degree)
+	{
+		result.setCoefficient(degree, eq1.coefficient(degree) - eq2.coefficient(degree));
+	}
+	return result;
+}
+
+Equation operator*(const Equation& eq1, const Equation& eq2)
+{
+	const int resultDegree = eq1.degree() + eq2.degree();
+	Equation::checkDegree(resultDegree);
+
+	Equation result(resultDegree);
+	for (int i = 0; i <= eq1.degree(); ++i)
+	{
+		for (int j = 0; j <= eq2.degree(); ++j)
 		{
-			eq3.m_coeff[i + j] += eq1.m_coeff[i] * eq2.m_coeff[j];
+			const int degree = i + j;
+			result.setCoefficient(
+				degree,
+				result.coefficient(degree) + eq1.coefficient(i) * eq2.coefficient(j));
 		}
 	}
-
-	return eq3;
+	return result;
 }

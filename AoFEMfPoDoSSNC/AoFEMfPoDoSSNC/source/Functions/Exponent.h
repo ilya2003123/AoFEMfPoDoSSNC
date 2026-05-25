@@ -1,30 +1,28 @@
-#pragma once
+п»ї#pragma once
 
-#include <cmath>
 #include "Abstract.h"
+#include <cmath>
 
-namespace functions // Ну тут уж слов нет
+namespace functions
 {
-	template<typename F>  // Вроде тоже всё ясно
-	class Exponent : public functions::Abstract
+	template<typename F>
+	class Exponent : public Abstract
 	{
-	public:  // Закрепим, обзываю свой класс показательной функции в которую передаю тип F, Type-ом
-		typedef Exponent<F> Type;  
-		Exponent(const double base, const F& f)
-			:m_base(base), m_f(f)
+	public:
+		using Type = Exponent<F>;
+
+		Exponent(double base, const F& f)
+			: m_base(base), m_f(f)
 		{
 		}
 
-		double operator()(double x) override  // Ну тут говорить нечего, я считаю
+		double operator()(double x) override
 		{
-			if constexpr (std::is_pointer<F>::value)
-				return pow(m_base, (*m_f)(x));
-			else
-				return pow(m_base, m_f(x));   // используем стандартные формулы языка,
-		}								  // мы што умные штоли с нуля ВСЁ писать :D
+			return std::pow(m_base, evaluate(m_f, x));
+		}
 
-		double m_base;  // здесь основание double
-		F m_f;          // А вот здесь будет наш тип F (предположительно какая-то функция)
-
+	private:
+		double m_base;
+		F m_f;
 	};
 }

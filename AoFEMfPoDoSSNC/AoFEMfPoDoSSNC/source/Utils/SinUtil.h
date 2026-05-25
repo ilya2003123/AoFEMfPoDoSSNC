@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::Sinus<F> Sin(F& f)
+	functions::Sin<F> Sin(F& f)
 	{
-		return functions::Sinus<F>(f);
+		return functions::Sin<F>(f);
 	}
 
 	double Sin(double x)

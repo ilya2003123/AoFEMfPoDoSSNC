@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::Cotangent<F> Ctg(F& f)
+	functions::Cot<F> Ctg(F& f)
 	{
-		return functions::Cotangent<F>(f);
+		return functions::Cot<F>(f);
 	}
 
 	double Ctg(double x)

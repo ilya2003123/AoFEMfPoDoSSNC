@@ -1,32 +1,25 @@
-#pragma once
+п»ї#pragma once
 
 #include "../Functions/Abstract.h"
 
-namespace operations  // Ещё немножко таких namespace-ов
+namespace operations
 {
 	template<typename F>
 	class UnarMinus : public functions::Abstract
 	{
 	public:
-		typedef UnarMinus<F> Type;  // Обзываюсь
-		UnarMinus(const F& f)  // Конструктор
-			:m_f(f)
+		using Type = UnarMinus<F>;
+
+		UnarMinus(const F& f)
+			: m_f(f)
 		{
 		}
 
-		double operator()(double x) override  //  перегрузка
+		double operator()(double x) override
 		{
-			double f = 0;
-
-			if constexpr (std::is_pointer<F>::value)
-				f += (*m_f)(x);
-			else
-				f += m_f(x);
-
-			return -f;
+			return -functions::evaluate(m_f, x);
 		}
 
-		F m_f;  // Переменные
-
+		F m_f;
 	};
 }

@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::Tangent<F> Tg(F& f)
+	functions::Tan<F> Tg(F& f)
 	{
-		return functions::Tangent<F>(f);
+		return functions::Tan<F>(f);
 	}
 
 	double Tg(double x)

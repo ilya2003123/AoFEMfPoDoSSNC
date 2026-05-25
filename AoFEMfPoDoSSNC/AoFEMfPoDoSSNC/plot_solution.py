@@ -41,7 +41,7 @@ ALLOWED_CONSTANTS = {
 
 def piecewise(*args):
     if len(args) < 3 or len(args) % 2 == 0:
-        raise ValueError("piecewise expects: piecewise(border1, expr1, ..., lastExpr)")
+        raise ValueError("pw expects: pw(border1, expr1, ..., lastExpr)")
 
     result = np.array(args[-1], copy=True)
     for index in range(len(args) - 3, -1, -2):
@@ -52,6 +52,7 @@ def piecewise(*args):
 
 
 ALLOWED_FUNCTIONS["piecewise"] = piecewise
+ALLOWED_FUNCTIONS["pw"] = piecewise
 
 
 def read_plot_data(path):
@@ -61,8 +62,6 @@ def read_plot_data(path):
     data = {
         "meta": {},
         "coefficients": [],
-        "point_q": [],
-        "point_f": [],
         "pieces": [],
         "nodes": [],
     }
@@ -83,12 +82,6 @@ def read_plot_data(path):
         elif section == "coefficients":
             index, value = line.split()
             data["coefficients"].append((int(index), float(value)))
-        elif section == "point_q":
-            x, value = map(float, line.split())
-            data["point_q"].append((x, value))
-        elif section == "point_f":
-            x, value = map(float, line.split())
-            data["point_f"].append((x, value))
         elif section == "pieces":
             left, right, free_term, x_coeff = map(float, line.split())
             data["pieces"].append((left, right, free_term, x_coeff))

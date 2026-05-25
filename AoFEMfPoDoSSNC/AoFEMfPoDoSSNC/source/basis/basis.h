@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <vector>
 #include "Equation.h"
 
 struct Point
@@ -9,10 +10,8 @@ struct Point
 	friend std::ostream& operator<<(std::ostream& out, Point& point);
 };
 
-
-
-double linealCoeff(Point p1, Point p2);
-double freeMember(Point p1, Point p2);
+double linearCoefficient(Point p1, Point p2);
+double constantTerm(Point p1, Point p2);
 
 struct Cap
 {
@@ -23,11 +22,12 @@ struct Cap
 	Cap() = default;
 	Cap(Point leftBorder, Point rightBorder)
 		: m_leftBorder(leftBorder), m_rightBorder(rightBorder),
-		m_equation(freeMember(leftBorder, rightBorder), linealCoeff(leftBorder, rightBorder))
+		m_equation(constantTerm(leftBorder, rightBorder), linearCoefficient(leftBorder, rightBorder))
 	{ }
 
 	friend std::ostream& operator<<(std::ostream& out, Cap& cap);
 };
 
-void line(Point p1, Point p2);
-void equationStraightLine(Cap** omega, int m, double length = 1.0);
+using Basis = std::vector<std::vector<Cap>>;
+
+void buildLinearBasis(Basis& phi, int m, double length = 1.0);

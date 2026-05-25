@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::Cosinus<F> Cos(F& f)
+	functions::Cos<F> Cos(F& f)
 	{
-		return functions::Cosinus<F>(f);
+		return functions::Cos<F>(f);
 	}
 
 	double Cos(double x)

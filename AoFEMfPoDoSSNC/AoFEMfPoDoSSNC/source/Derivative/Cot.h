@@ -6,10 +6,10 @@
 #include "../Utils/Utils.h"
 
 template <typename F>
-class Derivative<functions::ATangent<F>> : public functions::Abstract
+class Derivative<functions::Cot<F>> : public functions::Abstract
 {
 public:
-	Derivative(const functions::ATangent<F>& f)
+	Derivative(const functions::Cot<F>& f)
 		: m_f(f.m_f), m_df(f.m_f)
 	{
 	}
@@ -29,17 +29,17 @@ public:
 		else
 			dfx += m_df(x);
 
-		return (dfx / (1 + fx * fx));
+		return (-dfx / (sin(fx) * sin(fx)));
 	}
 
 	F m_f;
 	Derivative<F> m_df;
 
-	typedef operations::Divide<typename Derivative<F>::Type,
-		operations::Add<functions::Const, operations::Multiply<F, F>>> Type;
-	Type expression() 
+	typedef operations::Divide<operations::Multiply<functions::Const, typename Derivative<F>::Type>,
+		operations::Multiply<functions::Sin<F>, functions::Sin<F>>> Type;
+	Type expression()
 	{
-		return (m_df.expression() / (functions::Const(1) + utils::Sqr(m_f)));
+		return (functions::Const(-1) * m_df.expression() / (utils::Sin(m_f) * utils::Sin(m_f)));
 	}
 
 };

@@ -1,15 +1,15 @@
 #pragma once
 
-// Вот, тот самый файл, ради чего я всё это делал, один из них...
+// Common include for derivative rules.
 
-#include "ACosinus.h"
-#include "ACotangent.h"
+#include "ArcCos.h"
+#include "ArcCot.h"
 #include "Add.h"
-#include "ASinus.h"
-#include "ATangent.h"
+#include "ArcSin.h"
+#include "ArcTan.h"
 #include "Const.h"
-#include "Cosinus.h"
-#include "Cotangent.h"
+#include "Cos.h"
+#include "Cot.h"
 #include "Divide.h"
 #include "Exponent.h"
 #include "function-derivative.h"
@@ -18,6 +18,6 @@
 #include "Multiply.h"
 #include "Power.h"
 #include "Simple.h"
-#include "Sinus.h"
+#include "Sin.h"
 #include "Subtract.h"
-#include "Tangent.h"
+#include "Tan.h"

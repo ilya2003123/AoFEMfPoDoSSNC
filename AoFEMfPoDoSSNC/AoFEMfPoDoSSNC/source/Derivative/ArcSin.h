@@ -4,13 +4,12 @@
 #include "../Functions/functions.h"
 #include "General.h"
 #include "../Utils/Utils.h"
-#include <typeinfo>
 
 template <typename F>
-class Derivative<functions::ACosinus<F>> : public functions::Abstract
+class Derivative<functions::ArcSin<F>> : public functions::Abstract
 {
 public:
-	Derivative(const functions::ACosinus<F>& f)
+	Derivative(const functions::ArcSin<F>& f)
 		: m_f(f.m_f), m_df(f.m_f)
 	{
 	}
@@ -30,18 +29,18 @@ public:
 		else
 			dfx += m_df(x);
 
-		return (-dfx / sqrt(1 - fx * fx));
+		return (dfx / sqrt(1 - fx * fx));
 	}
 
 	F m_f;
 	Derivative<F> m_df;
 
-	typedef operations::Divide<operations::Multiply<functions::Const, typename Derivative<F>::Type>,
+	typedef operations::Divide<typename Derivative<F>::Type,
 		functions::Power<operations::Subtract<functions::Const, operations::Multiply<F, F>>>> Type;
 	Type expression()
 	{
 		operations::Subtract<functions::Const, operations::Multiply<F, F>> a = (1 - m_f * m_f);
-		return ((functions::Const(-1) * m_df.expression()) / utils::Sqrt(a));
+		return (m_df.expression() / utils::Sqrt(a));
 	}
 
 };

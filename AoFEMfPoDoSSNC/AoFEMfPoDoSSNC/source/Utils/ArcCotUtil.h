@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::ACotangent<F> ACtg(F& f)
+	functions::ArcCot<F> ACtg(F& f)
 	{
-		return functions::ACotangent<F>(f);
+		return functions::ArcCot<F>(f);
 	}
 
 	double ACtg(double x)

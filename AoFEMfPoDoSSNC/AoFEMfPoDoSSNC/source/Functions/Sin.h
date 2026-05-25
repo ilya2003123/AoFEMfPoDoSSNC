@@ -1,29 +1,26 @@
-#pragma once
+п»ї#pragma once
 
-#include <cmath>
 #include "Abstract.h"
+#include <cmath>
 
-namespace functions  // Ну, этот класс ничем вроде как не отличается от других, рассказать о нём ничего нового
-{                    // не могу
+namespace functions
+{
 	template<typename F>
-	class Sinus : public functions::Abstract
+	class Sin : public Abstract
 	{
 	public:
-		typedef Sinus<F> Type;
-		Sinus(const F& f)
-			:m_f(f)
+		using Type = Sin<F>;
+
+		Sin(const F& f)
+			: m_f(f)
 		{
 		}
 
 		double operator()(double x) override
 		{
-			if constexpr (std::is_pointer<F>::value)
-				return sin((*m_f)(x));
-			else
-				return sin(m_f(x));
+			return std::sin(evaluate(m_f, x));
 		}
 
 		F m_f;
-
 	};
 }

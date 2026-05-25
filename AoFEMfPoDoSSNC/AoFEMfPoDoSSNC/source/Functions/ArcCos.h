@@ -6,22 +6,21 @@
 namespace functions
 {
 	template<typename F>
-	class Power : public Abstract
+	class ArcCos : public Abstract
 	{
 	public:
-		using Type = Power<F>;
+		using Type = ArcCos<F>;
 
-		Power(const F& f, double n)
-			: m_f(f), m_n(n)
+		ArcCos(const F& f)
+			: m_f(f)
 		{
 		}
 
 		double operator()(double x) override
 		{
-			return std::pow(evaluate(m_f, x), m_n);
+			return std::acos(evaluate(m_f, x));
 		}
 
 		F m_f;
-		double m_n;
 	};
 }

@@ -6,10 +6,10 @@
 #include "../Utils/Utils.h"
 
 template <typename F>
-class Derivative<functions::ASinus<F>> : public functions::Abstract
+class Derivative<functions::ArcTan<F>> : public functions::Abstract
 {
 public:
-	Derivative(const functions::ASinus<F>& f)
+	Derivative(const functions::ArcTan<F>& f)
 		: m_f(f.m_f), m_df(f.m_f)
 	{
 	}
@@ -29,18 +29,17 @@ public:
 		else
 			dfx += m_df(x);
 
-		return (dfx / sqrt(1 - fx * fx));
+		return (dfx / (1 + fx * fx));
 	}
 
 	F m_f;
 	Derivative<F> m_df;
 
 	typedef operations::Divide<typename Derivative<F>::Type,
-		functions::Power<operations::Subtract<functions::Const, operations::Multiply<F, F>>>> Type;
-	Type expression()
+		operations::Add<functions::Const, operations::Multiply<F, F>>> Type;
+	Type expression() 
 	{
-		operations::Subtract<functions::Const, operations::Multiply<F, F>> a = (1 - m_f * m_f);
-		return (m_df.expression() / utils::Sqrt(a));
+		return (m_df.expression() / (functions::Const(1) + utils::Sqr(m_f)));
 	}
 
 };

@@ -1,29 +1,26 @@
-#pragma once
+﻿#pragma once
 
-#include <cmath>
 #include "Abstract.h"
+#include <cmath>
 
 namespace functions
 {
 	template<typename F>
-	class Cosinus : public functions::Abstract
+	class Cos : public Abstract
 	{
 	public:
-		typedef Cosinus<F> Type;
-		Cosinus(const F& f)
-			:m_f(f)
+		using Type = Cos<F>;
+
+		Cos(const F& f)
+			: m_f(f)
 		{
 		}
 
 		double operator()(double x) override
 		{
-			if constexpr (std::is_pointer<F>::value)
-				return cos((*m_f)(x));
-			else
-				return cos(m_f(x));
+			return std::cos(evaluate(m_f, x));
 		}
 
 		F m_f;
-
 	};
 }

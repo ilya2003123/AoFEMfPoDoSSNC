@@ -6,10 +6,10 @@
 #include "../Utils/Utils.h"
 
 template <typename F>
-class Derivative<functions::Cosinus<F>> : public functions::Abstract
+class Derivative<functions::Cos<F>> : public functions::Abstract
 {
 public:
-	Derivative(const functions::Cosinus<F>& f)
+	Derivative(const functions::Cos<F>& f)
 		: m_f(f.m_f), m_df(f.m_f)
 	{
 	}
@@ -35,7 +35,7 @@ public:
 	F m_f;
 	Derivative<F> m_df;
 
-	typedef operations::Multiply<operations::Multiply<functions::Const, functions::Sinus<F>>,
+	typedef operations::Multiply<operations::Multiply<functions::Const, functions::Sin<F>>,
 		typename Derivative<F>::Type> Type;
 	Type expression()
 	{

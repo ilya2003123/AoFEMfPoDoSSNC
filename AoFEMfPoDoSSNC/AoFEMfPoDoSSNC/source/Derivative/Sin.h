@@ -7,10 +7,10 @@
 
 
 template <typename F>
-class Derivative<functions::Sinus<F>> : public functions::Abstract
+class Derivative<functions::Sin<F>> : public functions::Abstract
 {
 public:
-	Derivative(const functions::Sinus<F>& f)
+	Derivative(const functions::Sin<F>& f)
 		: m_f(f.m_f), m_df(f.m_f)
 	{
 	}
@@ -36,7 +36,7 @@ public:
 	F m_f;
 	Derivative<F> m_df;
 
-	typedef operations::Multiply<functions::Cosinus<F>, typename Derivative<F>::Type> Type;
+	typedef operations::Multiply<functions::Cos<F>, typename Derivative<F>::Type> Type;
 	Type expression()
 	{
 		return (utils::Cos(m_f) * m_df.expression());

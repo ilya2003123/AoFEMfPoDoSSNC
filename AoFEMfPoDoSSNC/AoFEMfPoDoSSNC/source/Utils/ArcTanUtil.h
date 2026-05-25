@@ -5,9 +5,9 @@
 namespace utils
 {
 	template<typename F>
-	functions::ATangent<F> ATg(F& f)
+	functions::ArcTan<F> ATg(F& f)
 	{
-		return functions::ATangent<F>(f);
+		return functions::ArcTan<F>(f);
 	}
 
 	double ATg(double x)

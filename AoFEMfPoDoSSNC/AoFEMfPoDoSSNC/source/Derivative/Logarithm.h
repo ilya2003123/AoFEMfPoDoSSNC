@@ -6,7 +6,6 @@
 #include "../Utils/Utils.h"
 #include <typeinfo>
 
-using namespace utils;
 
 template <typename F1, typename F2>
 class Derivative<functions::Logarithm<F1, F2>> : public functions::Abstract
@@ -76,8 +75,8 @@ public:
 	Type expression()
 	{
 		functions::Const e(2.71828182845904523536);
-		return ((m_f1 * m_df2.expression() * Log(e, m_f1) - m_df1.expression() * m_f2 * Log(e, m_f2)) /
-			(m_f1 * m_f2 * Log(e, m_f1) * Log(e, m_f1)));
+		return ((m_f1 * m_df2.expression() * utils::Log(e, m_f1) - m_df1.expression() * m_f2 * utils::Log(e, m_f2)) /
+			(m_f1 * m_f2 * utils::Log(e, m_f1) * utils::Log(e, m_f1)));
 	}
 
 };
