@@ -13,7 +13,11 @@ struct PlotSeries
 	std::vector<double> nodeY;
 	std::vector<double> exactX;
 	std::vector<double> exactY;
+	std::vector<double> obstacleX;
+	std::vector<double> obstacleY;
 	bool hasExact = false;
+	bool hasObstacle = false;
+	bool showLimiter = true;
 };
 
 struct SolutionPiece
@@ -36,6 +40,7 @@ struct LoadedPlot
 
 struct GuiState
 {
+	int problemType = 1;
 	int mode = 1;
 	int intervals = 20;
 	double length = 1.0;
@@ -51,6 +56,12 @@ struct GuiState
 	std::string generatedF;
 	ProblemDefinition problem;
 	SolveResult result;
+	ObstacleProblemDefinition obstacleProblem;
+	ObstacleSolveResult obstacleResult;
+	std::string obstacleF = "10";
+	std::string obstaclePsi = "2*x*(1-x)-0.1";
+	int obstacleMaxIterations = 10000;
+	double obstacleToleranceScale = 1e-3;
 	PlotSeries plot;
 	LoadedPlot comparisonPlots[2];
 	float comparisonSplit = 0.5f;

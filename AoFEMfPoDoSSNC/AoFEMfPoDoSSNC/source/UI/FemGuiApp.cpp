@@ -4,6 +4,7 @@
 
 #include "FemGuiState.h"
 #include "../FEM/GeneratedRightSide.h"
+#include "../FEM/ObstacleSolver.h"
 #include "../FEM/PlotDataWriter.h"
 #include "../FEM/ReportWriter.h"
 #include "../FEM/Solver.h"
@@ -108,6 +109,28 @@ namespace
 		}
 	}
 
+	void appendObstacleSamples(PlotSeries& plot, const std::string& obstacle, double length)
+	{
+		const int samples = 800;
+		if (obstacle.empty())
+		{
+			return;
+		}
+
+		Parser obstacleParser(obstacle.c_str());
+		Expression obstacleExpression = obstacleParser.parse();
+		plot.hasObstacle = true;
+		plot.obstacleX.reserve(samples);
+		plot.obstacleY.reserve(samples);
+
+		for (int i = 0; i < samples; ++i)
+		{
+			const double x = length * i / (samples - 1);
+			plot.obstacleX.push_back(x);
+			plot.obstacleY.push_back(eval(obstacleExpression, x));
+		}
+	}
+
 	PlotSeries buildPlotSeries(
 		const ProblemDefinition& problem,
 		const std::vector<SolutionPiece>& pieces,
@@ -143,12 +166,16 @@ namespace
 
 	double maxAbsPlotValue(const PlotSeries& plot, double limiter)
 	{
-		double result = std::max(1.0, std::abs(limiter));
+		double result = plot.showLimiter ? std::max(1.0, std::abs(limiter)) : 1.0;
 		for (double value : plot.femY)
 		{
 			result = std::max(result, std::abs(value));
 		}
 		for (double value : plot.exactY)
+		{
+			result = std::max(result, std::abs(value));
+		}
+		for (double value : plot.obstacleY)
 		{
 			result = std::max(result, std::abs(value));
 		}
@@ -180,6 +207,21 @@ namespace
 		return problem;
 	}
 
+	ObstacleProblemDefinition buildObstacleProblem(const GuiState& state)
+	{
+		ObstacleProblemDefinition problem;
+		problem.name = "Obstacle problem";
+		problem.intervals = state.intervals;
+		problem.length = state.length;
+		problem.p = state.p;
+		problem.q = state.q;
+		problem.f = state.obstacleF;
+		problem.obstacle = state.obstaclePsi;
+		problem.maxIterations = state.obstacleMaxIterations;
+		problem.toleranceScale = state.obstacleToleranceScale;
+		return problem;
+	}
+
 	void rebuildPlotSeries(GuiState& state)
 	{
 		std::vector<SolutionPiece> pieces;
@@ -204,6 +246,43 @@ namespace
 		}
 
 		state.plot = buildPlotSeries(state.problem, pieces, nodes);
+	}
+
+	void rebuildObstaclePlotSeries(GuiState& state)
+	{
+		std::vector<SolutionPiece> pieces;
+		std::vector<std::pair<double, double>> nodes;
+		pieces.reserve(state.obstacleProblem.intervals);
+		nodes.reserve(state.obstacleProblem.intervals + 1);
+
+		for (int interval = 0; interval < state.obstacleProblem.intervals; ++interval)
+		{
+			SolutionPiece piece;
+			piece.left = state.obstacleProblem.length * interval / state.obstacleProblem.intervals;
+			piece.right = state.obstacleProblem.length * (interval + 1) / state.obstacleProblem.intervals;
+			piece.freeTerm = state.obstacleResult.solutionByInterval[interval][0];
+			piece.xCoeff = state.obstacleResult.solutionByInterval[interval][1];
+			pieces.push_back(piece);
+		}
+
+		for (int node = 0; node <= state.obstacleProblem.intervals; ++node)
+		{
+			const double x = state.obstacleProblem.length * node / state.obstacleProblem.intervals;
+			const int interval = std::min(node, state.obstacleProblem.intervals - 1);
+			nodes.emplace_back(x, evaluatePiece(state.obstacleResult.solutionByInterval[interval], x));
+		}
+
+		ProblemDefinition plotProblem;
+		plotProblem.intervals = state.obstacleProblem.intervals;
+		plotProblem.length = state.obstacleProblem.length;
+		plotProblem.p = state.obstacleProblem.p;
+		plotProblem.q = state.obstacleProblem.q;
+		plotProblem.f = state.obstacleProblem.f;
+		plotProblem.name = state.obstacleProblem.name;
+
+		state.plot = buildPlotSeries(plotProblem, pieces, nodes);
+		state.plot.showLimiter = false;
+		appendObstacleSamples(state.plot, state.obstacleProblem.obstacle, state.obstacleProblem.length);
 	}
 
 	LoadedPlot loadPlotFile(const std::string& path)
@@ -305,6 +384,40 @@ namespace
 		return "Solved: " + state.result.boundaryCase + ".";
 	}
 
+	std::string obstacleResultSummary(const GuiState& state)
+	{
+		std::ostringstream out;
+		out << "Solved obstacle problem: "
+			<< (state.obstacleResult.converged ? "converged" : "iteration limit reached")
+			<< ", iterations = " << state.obstacleResult.iterations
+			<< ", max delta = " << state.obstacleResult.maxDelta << ".";
+		return out.str();
+	}
+
+	void writeObstacleReport(std::ostream& out, const ObstacleProblemDefinition& problem, const ObstacleSolveResult& result)
+	{
+		out << "Obstacle problem\n";
+		out << "N: " << problem.intervals << "\n";
+		out << "l: " << problem.length << "\n";
+		out << "p(x): " << problem.p << "\n";
+		out << "q(x): " << problem.q << "\n";
+		out << "f(x): " << problem.f << "\n";
+		out << "psi(x): " << problem.obstacle << "\n";
+		out << "iterations: " << result.iterations << "\n";
+		out << "converged: " << (result.converged ? "yes" : "no") << "\n";
+		out << "max_delta: " << result.maxDelta << "\n\n";
+
+		out << "node x u_h(x) psi(x)\n";
+		for (int node = 0; node <= problem.intervals; ++node)
+		{
+			const double x = problem.length * node / problem.intervals;
+			const int interval = std::min(node, problem.intervals - 1);
+			const double value = evaluatePiece(result.solutionByInterval[interval], x);
+			const double obstacle = result.obstacleValues[node];
+			out << node << " " << x << " " << value << " " << obstacle << "\n";
+		}
+	}
+
 	void saveCurrentPlot(GuiState& state)
 	{
 		if (!state.hasResult)
@@ -319,7 +432,29 @@ namespace
 			return;
 		}
 
-		writePlotFile(path, state.problem, state.result);
+		if (state.problemType == 2)
+		{
+			SolveResult saveResult;
+			saveResult.finalCoeff = state.obstacleResult.finalCoeff;
+			saveResult.solutionByInterval = state.obstacleResult.solutionByInterval;
+			saveResult.boundaryCase = state.obstacleResult.converged ? "obstacle converged" : "obstacle iteration limit";
+
+			ProblemDefinition saveProblem;
+			saveProblem.name = state.obstacleProblem.name;
+			saveProblem.intervals = state.obstacleProblem.intervals;
+			saveProblem.length = state.obstacleProblem.length;
+			saveProblem.limiter = 0.0;
+			saveProblem.p = state.obstacleProblem.p;
+			saveProblem.q = state.obstacleProblem.q;
+			saveProblem.f = state.obstacleProblem.f;
+			saveProblem.exactU = state.obstacleProblem.obstacle;
+
+			writePlotFile(path, saveProblem, saveResult);
+		}
+		else
+		{
+			writePlotFile(path, state.problem, state.result);
+		}
 		state.status = "Plot saved: " + path;
 	}
 
@@ -346,6 +481,28 @@ namespace
 
 	void solveFromGui(GuiState& state)
 	{
+		if (state.problemType == 2)
+		{
+			state.obstacleProblem = buildObstacleProblem(state);
+			state.obstacleResult = solveObstacleProblem(state.obstacleProblem);
+
+			std::ofstream out("output.txt");
+			if (!out)
+			{
+				throw std::runtime_error("Cannot open output.txt");
+			}
+
+			writeObstacleReport(out, state.obstacleProblem, state.obstacleResult);
+			rebuildObstaclePlotSeries(state);
+			state.hasResult = true;
+			state.resetPlotView = true;
+			state.status = obstacleResultSummary(state);
+
+			std::cout << state.status << std::endl;
+			std::cout << "Done. See output.txt." << std::endl;
+			return;
+		}
+
 		state.problem = buildProblem(state);
 		state.generatedF = state.problem.generatedRightSide ? state.problem.f : "";
 		state.result = solveProblem(state.problem);
@@ -437,13 +594,22 @@ namespace
 				ImPlot::PlotLine("exact u(x)", plot.exactX.data(), plot.exactY.data(), static_cast<int>(plot.exactX.size()));
 			}
 
-			const double limiterX[2] = { 0.0, length };
-			const double upperLimiterY[2] = { limiter, limiter };
-			const double lowerLimiterY[2] = { -limiter, -limiter };
-			ImPlot::SetNextLineStyle(ImVec4(0.82f, 0.76f, 0.45f, 1.0f), 1.0f);
-			ImPlot::PlotLine("limiter", limiterX, upperLimiterY, 2);
-			ImPlot::SetNextLineStyle(ImVec4(0.82f, 0.76f, 0.45f, 1.0f), 1.0f);
-			ImPlot::PlotLine("##lower_limiter", limiterX, lowerLimiterY, 2);
+			if (plot.hasObstacle)
+			{
+				ImPlot::SetNextLineStyle(ImVec4(0.96f, 0.82f, 0.22f, 1.0f), 1.9f);
+				ImPlot::PlotLine("psi(x)", plot.obstacleX.data(), plot.obstacleY.data(), static_cast<int>(plot.obstacleX.size()));
+			}
+
+			if (plot.showLimiter)
+			{
+				const double limiterX[2] = { 0.0, length };
+				const double upperLimiterY[2] = { limiter, limiter };
+				const double lowerLimiterY[2] = { -limiter, -limiter };
+				ImPlot::SetNextLineStyle(ImVec4(0.82f, 0.76f, 0.45f, 1.0f), 1.0f);
+				ImPlot::PlotLine("limiter", limiterX, upperLimiterY, 2);
+				ImPlot::SetNextLineStyle(ImVec4(0.82f, 0.76f, 0.45f, 1.0f), 1.0f);
+				ImPlot::PlotLine("##lower_limiter", limiterX, lowerLimiterY, 2);
+			}
 
 			ImPlot::EndPlot();
 		}
@@ -458,11 +624,40 @@ namespace
 
 		if (state.hasResult && !state.plot.femX.empty())
 		{
-			drawPlotContent("FEM solution##current", state.plot, state.problem.length, state.problem.limiter, state.resetPlotView);
+			const double length = state.problemType == 2 ? state.obstacleProblem.length : state.problem.length;
+			const double limiter = state.problemType == 2 ? 1.0 : state.problem.limiter;
+			drawPlotContent("FEM solution##current", state.plot, length, limiter, state.resetPlotView);
 		}
 		else
 		{
 			ImGui::TextWrapped("Press Solve to build the FEM graph.");
+		}
+
+		ImGui::EndChild();
+		ImGui::PopStyleColor();
+	}
+
+	void drawProblemSelectorPanel(GuiState& state, const ImVec2& size)
+	{
+		ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.075f, 0.083f, 0.095f, 1.0f));
+		ImGui::BeginChild("ProblemSelectorPanel", size, false);
+
+		ImGui::TextUnformatted("Problem");
+		ImGui::Separator();
+		const char* problems[] = {
+			"1 - endpoint limiter",
+			"2 - obstacle problem"
+		};
+		int selectedProblem = state.problemType - 1;
+		if (ImGui::Combo("Problem", &selectedProblem, problems, IM_ARRAYSIZE(problems)))
+		{
+			state.problemType = selectedProblem + 1;
+			state.hasResult = false;
+			state.status = "Press Solve to build the FEM graph.";
+			if (state.problemType == 2 && state.mode == 3)
+			{
+				state.mode = 1;
+			}
 		}
 
 		ImGui::EndChild();
@@ -507,17 +702,25 @@ namespace
 		ImGui::Separator();
 		ImGui::InputInt("N", &state.intervals);
 		ImGui::InputDouble("l", &state.length, 0.0, 0.0, "%.10g");
-		ImGui::InputDouble("m", &state.limiter, 0.0, 0.0, "%.10g");
 		ImGui::InputText("p(x)", &state.p);
 		ImGui::InputText("q(x)", &state.q);
 
-		if (state.mode == 1)
+		if (state.problemType == 2)
 		{
+			ImGui::InputText("f(x)", &state.obstacleF);
+			ImGui::InputText("psi(x)", &state.obstaclePsi);
+			ImGui::InputInt("max iterations", &state.obstacleMaxIterations);
+			ImGui::InputDouble("tolerance scale", &state.obstacleToleranceScale, 0.0, 0.0, "%.10g");
+		}
+		else if (state.mode == 1)
+		{
+			ImGui::InputDouble("m", &state.limiter, 0.0, 0.0, "%.10g");
 			ImGui::InputText("f(x)", &state.f);
 			ImGui::InputText("exact u(x)", &state.exactU);
 		}
 		else
 		{
+			ImGui::InputDouble("m", &state.limiter, 0.0, 0.0, "%.10g");
 			ImGui::InputText("exact u(x)", &state.exactU);
 			if (canBuildGeneratedRightSide(state))
 			{
@@ -719,7 +922,7 @@ namespace
 		ImGui::Begin("AoFEMfPoDoSSNC", nullptr, flags);
 
 		const ImVec2 available = ImGui::GetContentRegionAvail();
-		if (state.mode == 3)
+		if (state.problemType == 1 && state.mode == 3)
 		{
 			drawComparisonUi(state, available);
 			ImGui::End();
@@ -730,14 +933,23 @@ namespace
 		const float gap = 8.0f;
 		const float rightWidth = std::max(410.0f, available.x * 0.38f);
 		const float leftWidth = std::max(320.0f, available.x - rightWidth - gap);
-		const float modeHeight = std::max(135.0f, available.y * 0.18f);
+		const float selectorHeight = 86.0f;
+		const float modeHeight = state.problemType == 1 ? std::max(120.0f, available.y * 0.16f) : 0.0f;
 
 		drawPlotPanel(state, ImVec2(leftWidth, available.y));
 		ImGui::SameLine(0.0f, gap);
 
 		ImGui::BeginGroup();
-		drawModePanel(state, ImVec2(rightWidth, modeHeight));
-		drawInputPanel(state, ImVec2(rightWidth, available.y - modeHeight - gap));
+		drawProblemSelectorPanel(state, ImVec2(rightWidth, selectorHeight));
+		if (state.problemType == 1)
+		{
+			drawModePanel(state, ImVec2(rightWidth, modeHeight));
+			drawInputPanel(state, ImVec2(rightWidth, available.y - selectorHeight - modeHeight - 2.0f * gap));
+		}
+		else
+		{
+			drawInputPanel(state, ImVec2(rightWidth, available.y - selectorHeight - gap));
+		}
 		ImGui::EndGroup();
 
 		ImGui::End();
